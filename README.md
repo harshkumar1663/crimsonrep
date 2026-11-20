@@ -12,25 +12,25 @@ CrimsonRep is built for fitness enthusiasts who want to track their workout prog
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│                        Client Layer                            │
+│                        Client Layer                           │
 ├───────────────────────────────────────────────────────────────┤
 │  Swagger UI / ReDoc  │  HTMX Frontend (planned)  │  API Clients │
 ├───────────────────────────────────────────────────────────────┤
-│                      Application Layer                         │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌───────────────┐ │
-│  │   Auth Router   │  │  Sessions Router│  │ Exercises     │ │
-│  │ (signup, login) │  │ (CRUD Sessions) │  │ Router        │ │
-│  └─────────────────┘  └─────────────────┘  └───────────────┘ │
+│                      Application Layer                        │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌───────────────┐  │
+│  │   Auth Router   │  │  Sessions Router│  │ Exercises     │  │
+│  │ (signup, login) │  │ (CRUD Sessions) │  │ Router        │  │
+│  └─────────────────┘  └─────────────────┘  └───────────────┘  │
 ├───────────────────────────────────────────────────────────────┤
-│                    Business Logic Layer                        │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌───────────────┐ │
-│  │   Pydantic      │  │   SQLAlchemy    │  │   Utils       │ │
-│  │   Models        │  │   ORM/Services  │  │   (1RM calc)  │ │
-│  └─────────────────┘  └─────────────────┘  └───────────────┘ │
+│                    Business Logic Layer                       │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌───────────────┐  │
+│  │   Pydantic      │  │   SQLAlchemy    │  │   Utils       │  │
+│  │   Models        │  │   ORM/Services  │  │   (1RM calc)  │  │
+│  └─────────────────┘  └─────────────────┘  └───────────────┘  │
 ├───────────────────────────────────────────────────────────────┤
-│                      Data Layer                                │
-│  PostgreSQL (via SQLAlchemy)                                   │
-│  Tables: users, exercises, workout_sessions, sets              │
+│                      Data Layer                               │
+│  PostgreSQL (via SQLAlchemy)                                  │
+│  Tables: users, exercises, workout_sessions, sets             │
 └───────────────────────────────────────────────────────────────┘
 ```
 
