@@ -117,17 +117,6 @@ crimson_rep/
 └── README.md
 ```
 
-## Development Lifecycle
-
-| Phase | Goal | Deliverables |
-|-------|------|--------------|
-| Day 1 | Setup | Repo, venv, FastAPI skeleton |
-| Day 2 | Database | PostgreSQL, SQLAlchemy models, migrations |
-| Day 3 | Auth | Signup/Login endpoints, JWT tokens |
-| Day 4 | Core API | Sessions, Exercises, Sets endpoints |
-| Day 5 | Tests | 70%+ coverage, auth tests |
-| Day 6 | Deploy | Docker image, cloud deployment |
-
 ## Environment Configuration
 
 Create a `.env` file at the project root:

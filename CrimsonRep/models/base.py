@@ -1,0 +1,1 @@
+from CrimsonRep.core.database import Base
