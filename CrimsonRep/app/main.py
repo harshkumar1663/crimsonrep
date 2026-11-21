@@ -1,7 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
+from CrimsonRep.apis.auth import router as auth_router
 
 app = FastAPI(title= "CrimsonRep API")
+
+app.include_router(auth_router, prefix="/auth")
 
 @app.get("/")
 async def root():

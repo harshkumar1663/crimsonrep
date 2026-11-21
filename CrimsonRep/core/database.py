@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://postgre:password@localhost/CrimsonRep"
+SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://postgres:password@localhost:5433/gym_tracker"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
