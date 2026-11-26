@@ -3,14 +3,10 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from CrimsonRep.models.muscle_group import MuscleGroup, Exercise
-from CrimsonRep.models.user import User 
-from CrimsonRep.schemas.exercise import ExerciseBase, ExerciseResponse, ExerciseCreate, ExerciseUpdate
-from fastapi.security import OAuth2PasswordBearer
+from CrimsonRep.models.user import User
+from CrimsonRep.schemas.exercise import ExerciseResponse, ExerciseCreate, ExerciseUpdate
 from CrimsonRep.apis.auth import get_db
 from CrimsonRep.core.security import get_current_user
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
 
 router = APIRouter()
 
@@ -69,8 +65,8 @@ def create_custom_exercise(
     return exercise_to_response(db_exercise, db)
 
 @router.get("/exercises/my", response_model= List[ExerciseResponse])
-def get_my_exercises(db: Session= Depends(get_db)):
-    user_id= None
+def get_my_exercises(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    user_id = current_user.id
 
     exercises= db.query(Exercise).filter(
         Exercise.is_default == False,
@@ -94,8 +90,8 @@ def get_exercise(exercise_id: int, db: Session= Depends(get_db)):
 def update_exercise(
     exercise_id: int,
     exercise_update: ExerciseUpdate,
-    db: Session = Depends(get_db)
-    # Add: current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     db_exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
 
@@ -103,6 +99,13 @@ def update_exercise(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Exercise with id {exercise_id} not found"
+        )
+
+    # Prevent from updating someone else's exercise
+    if db_exercise.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your exercise to update"
         )
 
     if exercise_update.name is not None:
@@ -125,8 +128,8 @@ def update_exercise(
 @router.delete("/exercises/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_exercise(
     exercise_id: int,
-    db: Session = Depends(get_db)
-    # Add: current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     db_exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
 
@@ -134,6 +137,11 @@ def delete_exercise(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Exercise with id {exercise_id} not found"
+        )
+    if db_exercise.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your exercise to delete"
         )
 
     db.delete(db_exercise)

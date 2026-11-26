@@ -4,7 +4,7 @@ from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from CrimsonRep.apis.auth import get_db
+from CrimsonRep.core.database import SessionLocal
 from CrimsonRep.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl= "auth/login")
@@ -48,14 +48,14 @@ def verify_token(token: str) -> int:
 
 def get_current_user(
         token: str= Depends(oauth2_scheme),
-        db: Session= Depends(get_db)
+        db: Session= Depends(SessionLocal)
 ) -> User:
     credentials_exception= HTTPException(
         status_code= status.HTTP_401_UNAUTHORIZED,
         detail= "Could not validate credentials",
         headers= {"WWW-Authenticate":"Bearer"}
     )
-    try: 
+    try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id : int= payload.get("sub")
         if user_id is None:
