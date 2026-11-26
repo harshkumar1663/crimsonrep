@@ -2,24 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from CrimsonRep.core.database import SessionLocal
 from CrimsonRep.models.muscle_group import MuscleGroup, Exercise
 from CrimsonRep.models.user import User 
 from CrimsonRep.schemas.exercise import ExerciseBase, ExerciseResponse, ExerciseCreate, ExerciseUpdate
+from fastapi.security import OAuth2PasswordBearer
+from CrimsonRep.apis.auth import get_db
+from CrimsonRep.core.security import get_current_user
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 router = APIRouter()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-def get_current_user(db: Session = Depends(get_db)):
-    return None
 
 def get_muscle_group_by_name(db: Session, name: str) -> MuscleGroup:
     return db.query(MuscleGroup).filter(MuscleGroup.name == name).first()
@@ -49,7 +43,11 @@ def list_default_exercises(db: Session= Depends(get_db)):
     return [exercise_to_response(ex, db) for ex in exercises]
 
 @router.post("/exercises/custom", response_model= ExerciseResponse)
-def create_custom_exercise(exercise_data: ExerciseCreate, db: Session= Depends(get_db)):
+def create_custom_exercise(
+    exercise_data: ExerciseCreate, 
+    db: Session= Depends(get_db),
+    current_user: User= Depends(get_current_user)    
+):
     muscle_group= get_muscle_group_by_name(db, exercise_data.muscle_group)
     if not muscle_group:
         raise HTTPException(
@@ -61,7 +59,7 @@ def create_custom_exercise(exercise_data: ExerciseCreate, db: Session= Depends(g
         name= exercise_data.name,
         muscle_group_id= muscle_group.id,
         is_default= False,
-        user_id= get_current_user #TODO
+        user_id= current_user.id
     )
 
     db.add(db_exercise)
