@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from CrimsonRep.core.database import SessionLocal
+from CrimsonRep.core.dependencies import get_database_session
 from CrimsonRep.models.user import User
 from CrimsonRep.core.security import verify_password, create_access_token, get_password_hash
 from CrimsonRep.schemas.user import UserCreate, UserResponse
@@ -10,17 +10,12 @@ from CrimsonRep.schemas.token import Token
 router = APIRouter()
 
 
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Backwards-compatible alias used by existing dependency overrides.
+get_db = get_database_session
 
 
 @router.post("/signup", response_model=UserResponse)
-def signup(user: UserCreate, db: Session = Depends(get_db)):
+def signup(user: UserCreate, db: Session = Depends(get_database_session)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(
@@ -37,7 +32,7 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(user_credentials: UserCreate, db: Session = Depends(get_db)):
+def login(user_credentials: UserCreate, db: Session = Depends(get_database_session)):
     # 1. Find user in the DB
     user = db.query(User).filter(User.email == user_credentials.email).first()
 

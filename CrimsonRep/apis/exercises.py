@@ -5,7 +5,7 @@ from typing import List
 from CrimsonRep.models.muscle_group import MuscleGroup, Exercise
 from CrimsonRep.models.user import User
 from CrimsonRep.schemas.exercise import ExerciseResponse, ExerciseCreate, ExerciseUpdate
-from CrimsonRep.apis.auth import get_db
+from CrimsonRep.core.dependencies import get_database_session
 from CrimsonRep.core.security import get_current_user
 
 router = APIRouter()
@@ -30,7 +30,7 @@ def exercise_to_response(exercise: Exercise, db: Session) -> ExerciseResponse:
     )
 
 @router.get("/exercises", response_model= List[ExerciseResponse])
-def list_default_exercises(db: Session= Depends(get_db)):
+def list_default_exercises(db: Session = Depends(get_database_session)):
     exercises= db.query(Exercise).filter(
         Exercise.is_default == True, 
         Exercise.user_id == None
@@ -41,7 +41,7 @@ def list_default_exercises(db: Session= Depends(get_db)):
 @router.post("/exercises/custom", response_model= ExerciseResponse)
 def create_custom_exercise(
     exercise_data: ExerciseCreate, 
-    db: Session= Depends(get_db),
+    db: Session = Depends(get_database_session),
     current_user: User= Depends(get_current_user)    
 ):
     muscle_group= get_muscle_group_by_name(db, exercise_data.muscle_group)
@@ -65,7 +65,7 @@ def create_custom_exercise(
     return exercise_to_response(db_exercise, db)
 
 @router.get("/exercises/my", response_model= List[ExerciseResponse])
-def get_my_exercises(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_my_exercises(db: Session = Depends(get_database_session), current_user: User = Depends(get_current_user)):
     user_id = current_user.id
 
     exercises= db.query(Exercise).filter(
@@ -76,7 +76,11 @@ def get_my_exercises(db: Session = Depends(get_db), current_user: User = Depends
     return [exercise_to_response(ex, db) for ex in exercises]
 
 @router.get("/exercises/{exercise_id}", response_model= ExerciseResponse)
-def get_exercise(exercise_id: int, db: Session= Depends(get_db)):
+def get_exercise(
+    exercise_id: int,
+    db: Session = Depends(get_database_session),
+    current_user: User = Depends(get_current_user),
+):
     exercise= db.query(Exercise).filter(Exercise.id == exercise_id).first()
 
     if not exercise:
@@ -84,13 +88,18 @@ def get_exercise(exercise_id: int, db: Session= Depends(get_db)):
             status_code= status.HTTP_404_NOT_FOUND,
             detail= f"Exercise with id {exercise_id} not found"
         )
+    if not exercise.is_default and exercise.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Exercise with id {exercise_id} not found"
+        )
     return exercise_to_response(exercise, db)
 
 @router.put("/exercises/{exercise_id}", response_model=ExerciseResponse)
 def update_exercise(
     exercise_id: int,
     exercise_update: ExerciseUpdate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_database_session),
     current_user: User = Depends(get_current_user)
 ):
     db_exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
@@ -128,7 +137,7 @@ def update_exercise(
 @router.delete("/exercises/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_exercise(
     exercise_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_database_session),
     current_user: User = Depends(get_current_user)
 ):
     db_exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()

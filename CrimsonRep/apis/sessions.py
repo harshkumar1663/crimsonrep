@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session as DbSession
 from typing import List
+from sqlalchemy.orm import Session as DbSession
 
-from CrimsonRep.core.database import SessionLocal
+from CrimsonRep.core.dependencies import get_database_session
 from CrimsonRep.models.session import Session as WorkoutSession, Set
 from CrimsonRep.models.user import User
 from CrimsonRep.models.muscle_group import Exercise
@@ -11,17 +11,10 @@ from CrimsonRep.core.security import get_current_user
 
 router = APIRouter()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @router.post("/sessions", response_model=SessionResponse)
 def log_workout(
     session_data: SessionCreate,
-    db: DbSession = Depends(get_db),
+    db: DbSession = Depends(get_database_session),
     current_user: User = Depends(get_current_user)
 ):
     """Log a completed workout session with nested sets.
@@ -42,33 +35,28 @@ def log_workout(
 
     if not exercise:
         raise HTTPException(
-            status_code= status.HTTP_404_NOT_FOUND,
-            detail= "Exercise not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Exercise not found"
+        )
+
+    if exercise.user_id is not None and exercise.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Exercise not found"
         )
 
     # create the session
     db_session = WorkoutSession(
         user_id=current_user.id,
-        exercise_id=session_data.exercise_id
+        exercise_id=session_data.exercise_id,
+        notes=session_data.notes,
     )
 
     db.add(db_session)
-    db.flush() #Get session ID without committing
+    db.flush()  # Get session ID without committing
 
-    # create all sets with validation
+    # Persist all sets in the same transaction as their parent session.
     for idx, set_data in enumerate(session_data.sets):
-        # Validate: reps > 0 and weight >= 0
-        if set_data.reps <= 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Reps must be > 0 for set {idx + 1}"
-            )
-        if set_data.weight < 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Weight must be >= 0 for set {idx + 1}"
-            )
-
         set_order = set_data.order if set_data.order is not None else idx + 1
 
         db_set = Set(
@@ -81,7 +69,11 @@ def log_workout(
         db.add(db_set)
 
     # commit everything atomically
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(db_session)
 
     # fetch sets for response
@@ -89,16 +81,62 @@ def log_workout(
         db.refresh(s)
 
     return SessionResponse(
-        id= db_session.id,
-        exercise_id= db_session.exercise_id,
+        id=db_session.id,
+        exercise_id=db_session.exercise_id,
+        notes=db_session.notes,
+        created_at=db_session.created_at,
         sets=[
             SetResponse(
                 id=s.id,
                 exercise_id=s.exercise_id,
                 reps=s.reps,
                 weight=s.weight,
-                order=s.order
+                order=s.order,
+                created_at=s.created_at,
             )
-            for s in db_session.sets
+            for s in sorted(db_session.sets, key=lambda item: item.order)
         ]
     )
+
+
+@router.get("/sessions", response_model=List[SessionResponse])
+def list_sessions(
+    skip: int = 0,
+    limit: int = 20,
+    db: DbSession = Depends(get_database_session),
+    current_user: User = Depends(get_current_user),
+):
+    """List the authenticated user's sessions, newest first."""
+    if skip < 0:
+        raise HTTPException(status_code=400, detail="skip must be non-negative")
+    if not 1 <= limit <= 100:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
+
+    sessions = (
+        db.query(WorkoutSession)
+        .filter(WorkoutSession.user_id == current_user.id)
+        .order_by(WorkoutSession.created_at.desc(), WorkoutSession.id.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return [
+        SessionResponse(
+            id=session.id,
+            exercise_id=session.exercise_id,
+            notes=session.notes,
+            created_at=session.created_at,
+            sets=[
+                SetResponse(
+                    id=workout_set.id,
+                    exercise_id=workout_set.exercise_id,
+                    reps=workout_set.reps,
+                    weight=workout_set.weight,
+                    order=workout_set.order,
+                    created_at=workout_set.created_at,
+                )
+                for workout_set in sorted(session.sets, key=lambda item: item.order)
+            ],
+        )
+        for session in sessions
+    ]

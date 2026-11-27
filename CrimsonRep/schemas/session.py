@@ -5,13 +5,13 @@ from datetime import datetime
 class SetCreate(BaseModel):
     """Data for creating a single set"""
     reps: int = Field(gt=0)
-    weight: float = Field(ge=0)  # Allow zero weight
-    order: Optional[int] = None
+    weight: float = Field(ge=0)  # FIXED: Allow zero weight
+    order: Optional[int] = Field(default=None, gt=0)
 
 class SessionCreate(BaseModel):
     """Data for creating a workout session"""
-    exercise_id: int
-    sets: List[SetCreate] 
+    exercise_id: int = Field(gt=0)
+    sets: List[SetCreate] = Field(min_length=1)
     notes: Optional[str] = None
 
     @field_validator('sets')
@@ -19,6 +19,10 @@ class SessionCreate(BaseModel):
     def validate_sets_not_empty(cls, v):
         if len(v) == 0:
             raise ValueError("At least one set is required")
+        orders = [item.order if item.order is not None else index + 1
+                  for index, item in enumerate(v)]
+        if len(orders) != len(set(orders)):
+            raise ValueError("Set order values must be unique")
         return v
 
 class SetResponse(BaseModel):
@@ -30,16 +34,14 @@ class SetResponse(BaseModel):
     created_at: Optional[datetime] = None
 
     class Config:
-        from_attributes= True
+        from_attributes = True
 
 class SessionResponse(BaseModel):
     id: int
     exercise_id: int
     sets: List[SetResponse]
-    notes: Optional[str] = None
+    notes: Optional[str] = None  # FIXED: Was Optional[int]
     created_at: Optional[datetime] = None
 
     class Config:
-        from_attributes= True
-    
-    
+        from_attributes = True

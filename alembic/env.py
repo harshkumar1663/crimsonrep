@@ -27,6 +27,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 import CrimsonRep.models.user
 import CrimsonRep.models.muscle_group  # Import new models for autogenerate
+import CrimsonRep.models.session  # Import session models for autogenerate
 from CrimsonRep.core.database import Base
 target_metadata = Base.metadata
 

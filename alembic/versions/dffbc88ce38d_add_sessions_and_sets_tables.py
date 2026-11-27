@@ -28,8 +28,8 @@ def upgrade() -> None:
         sa.Column('exercise_id', sa.Integer(), nullable=False),
         sa.Column('notes', sa.String(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.Column('user_id_fkey', sa.ForeignKeyConstraint(['user_id'], ['users.id'], ), ),
-        sa.Column('exercise_id_fkey', sa.ForeignKeyConstraint(['exercise_id'], ['exercises.id'], ), ),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
+        sa.ForeignKeyConstraint(['exercise_id'], ['exercises.id']),
         sa.PrimaryKeyConstraint('id')
     )
 
@@ -43,8 +43,8 @@ def upgrade() -> None:
         sa.Column('weight', sa.Float(), nullable=False),
         sa.Column('order', sa.Integer(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.Column('session_id_fkey', sa.ForeignKeyConstraint(['session_id'], ['sessions.id'], ), ),
-        sa.Column('exercise_id_fkey', sa.ForeignKeyConstraint(['exercise_id'], ['exercises.id'], ), ),
+        sa.ForeignKeyConstraint(['session_id'], ['sessions.id']),
+        sa.ForeignKeyConstraint(['exercise_id'], ['exercises.id']),
         sa.PrimaryKeyConstraint('id')
     )
 
