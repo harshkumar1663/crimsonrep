@@ -5,7 +5,7 @@ from datetime import datetime
 class SetCreate(BaseModel):
     """Data for creating a single set"""
     reps: int = Field(gt=0)
-    weight: float = Field(gt=0)
+    weight: float = Field(ge=0)  # Allow zero weight
     order: Optional[int] = None
 
 class SessionCreate(BaseModel):
@@ -36,8 +36,8 @@ class SessionResponse(BaseModel):
     id: int
     exercise_id: int
     sets: List[SetResponse]
-    notes: Optional[int] = None
-    created_at: Optional[datetime]= None
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes= True

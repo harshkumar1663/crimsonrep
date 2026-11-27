@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session as DbSession
 from typing import List
 
 from CrimsonRep.core.database import SessionLocal
-from CrimsonRep.models.session import Session, Set
+from CrimsonRep.models.session import Session as WorkoutSession, Set
 from CrimsonRep.models.user import User
 from CrimsonRep.models.muscle_group import Exercise
 from CrimsonRep.schemas.session import SessionCreate, SessionResponse, SetResponse
@@ -18,11 +18,11 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/sessions",response_model=SessionResponse)
+@router.post("/sessions", response_model=SessionResponse)
 def log_workout(
     session_data: SessionCreate,
-    db: Session= Depends(get_db),
-    current_user: User= Depends(get_current_user)
+    db: DbSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Log a completed workout session with nested sets.
     Request body example:
@@ -47,9 +47,9 @@ def log_workout(
         )
 
     # create the session
-    db_session= Session(
-        user_id= current_user.id,
-        exercise_id= session_data.exercise_id
+    db_session = WorkoutSession(
+        user_id=current_user.id,
+        exercise_id=session_data.exercise_id
     )
 
     db.add(db_session)
