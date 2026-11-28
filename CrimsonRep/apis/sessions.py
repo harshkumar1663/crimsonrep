@@ -140,3 +140,75 @@ def list_sessions(
         )
         for session in sessions
     ]
+
+@router.get("/sessions/{session_id}",
+            response_model=SessionResponse)
+def get_single_session(
+    session_id: int,
+    db: DbSession= Depends(get_database_session),
+    current_user: User= Depends(get_current_user)
+):
+    """Get a specified workout session by ID"""
+    session = db.query(WorkoutSession).filter(
+        WorkoutSession.id == session_id
+    ).first()
+
+    if not session:
+        raise HTTPException(
+            status_code= status.HTTP_404_NOT_FOUND,
+            detail= "Session not found"
+        )
+
+    # Auth check
+    if session.user_id != current_user.id:
+        raise HTTPException(
+            status_code= status.HTTP_403_FORBIDDEN,
+            detail= "Not authorized to access this session"
+        )
+    return SessionResponse(
+        id = session.id,
+        exercise_id= session.exercise_id,
+        notes= session.notes,
+        created_at= session.created_at,
+        sets = [
+            SetResponse(
+                id= s.id,
+                exercise_id= s.exercise_id,
+                reps= s.reps,
+                weight=s.weight,
+                order=s.order,
+                created_at=s.created_at
+            )
+            for s in sorted(session.sets, key=lambda item: item.order)
+        ]
+    )
+
+@router.delete("/sessions/{session_id}",
+               status_code=status.HTTP_204_NO_CONTENT)
+def delete_session(
+    session_id: int,
+    db: DbSession= Depends(get_database_session),
+    current_user: User= Depends(get_current_user)
+):
+    """Delete a workout session. Sets are cascade-deleted"""
+    session = db.query(WorkoutSession).filter(
+        WorkoutSession.id == session_id
+    ).first()
+
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+
+    # Auth check 
+    if session.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this session"
+        )
+    
+    db.delete(session)
+    db.commit()
+
+    return None #FastAPI return 204

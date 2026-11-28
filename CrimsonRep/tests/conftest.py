@@ -1,7 +1,5 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 import CrimsonRep.models.user  
 
@@ -19,16 +17,13 @@ def override_get_db():
     finally:
         db.close()
 
-# Debug: check what the override looks like
-print("DEBUG: get_db function:", get_db)
-print("DEBUG: override function:", override_get_db)
-
 app.dependency_overrides[get_db] = override_get_db
-print("DEBUG: overrides after setting:", app.dependency_overrides)
 
 
 @pytest.fixture
 def client():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     with TestClient(app) as test_client:
         yield test_client
 
